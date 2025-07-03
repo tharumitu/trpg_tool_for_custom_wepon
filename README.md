@@ -1,1 +1,3 @@
 # trpg_tool_for_custom_wepon
+this proglam have many bugs...
+If you find it write this comment
