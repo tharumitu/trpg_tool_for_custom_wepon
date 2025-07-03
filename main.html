@@ -1,0 +1,518 @@
+<!-- TRPGツール -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRPGツール</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .main-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 2px solid #333;
+    }
+    .tab-bar {
+      display: flex;
+      background: #222;
+    }
+    .tab-bar button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: #222;
+      color: #fff;
+      cursor: pointer;
+    }
+    .tab-bar button.active {
+      background: #ffcc00;
+      color: #000;
+      font-weight: bold;
+    }
+    .content-area {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: #111;
+      color: #fff;
+    }
+    /* 右側：武器クラフト */
+    .craft-panel {
+      width: 300px;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    .craft-panel h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 5px;
+    }
+    .slot {
+      width: 100%;
+      height: 50px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      border: 2px solid #888;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #2d2d2d, #1a1a1a);
+      box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.05),
+                  0 2px 5px rgba(0, 0, 0, 0.4);
+      transition: background 0.2s, transform 0.2s;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+    .slot:hover {
+      background: linear-gradient(145deg, #3a3a3a, #222);
+      transform: scale(1.03);
+      cursor: pointer;
+    }
+    .slot.filled {
+      background: linear-gradient(145deg, #444, #222);
+      border-color: #ffcc00;
+      color: #ffcc00;
+    }
+    .slot.highlight {
+      border: 2px solid #ffcc00;
+      box-shadow: 0 0 8px #ffcc00aa;
+    }
+    .slot.attack { background: red; }
+    .slot.defense { background: blue; }
+    .slot.magic { background: purple; }
+    .material-body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .material-card {
+      border: 1px solid #555;
+      background: #222;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: grab;
+    }
+    .material-card h3 {
+      margin: 0 0 5px 0;
+    }
+    .material-card ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+    .card-list {
+      display: none;
+    }
+    .card-list.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-panel">
+    <div class="tab-bar">
+      <button class="active" onclick="switchTab('material')">素材</button>
+      <button onclick="switchTab('part')">パーツ</button>
+    </div>
+    <div class="content-area">
+      <div class="material-body">
+        <h1>素材 & パーツ</h1>
+        <!-- 素材とパーツのフィルター -->
+        <div class="filter-bar">
+          <input type="text" id="nameFilter" placeholder="名前で検索" />
+          <input type="number" id="minWeight" placeholder="最小重量" />
+          <input type="number" id="maxWeight" placeholder="最大重量" />
+          <input type="number" id="minAtk" placeholder="攻撃力以上" />
+          <input type="number" id="minHit" placeholder="命中修正以上" />
+          <input type="text" id="slotFilter" placeholder="部位で検索" />
+          <select id="weaponTypeFilter" placeholder="武器種">
+            <option value="">武器種</option>
+            <option value="全て">すべて</option>
+            <option value="片手剣">片手剣</option>
+            <option value="両手剣">両手剣</option>
+            <option value="短剣">短剣</option>
+            <option value="槍">槍</option>
+            <option value="弓">弓</option>
+            <option value="杖">杖</option>
+            <option value="斧">斧</option>
+            <option value="ハンマー">ハンマー</option>
+            <option value="盾">盾</option>
+            <option value="ハンドガン">ハンドガン</option>
+            <option value="刀">刀</option>
+            <option value="アサルトライフル">アサルトライフル</option>
+            <option value="ショットガン">ショットガン</option>
+            <option value="ライフル">ライフル</option>
+            <option value="スナイパーライフル">スナイパーライフル</option>
+          </select>
+          <select id="rarityFilter">
+            <option value="">レアリティ</option>
+            <option value="★">★</option>
+            <option value="★★">★★</option>
+            <option value="★★★">★★★</option>
+            <option value="★★★★">★★★★</option>
+            <option value="★★★★★">★★★★★</option>
+          </select>
+          <button onclick="filterMaterials()">絞り込み</button>
+        </div>
+        <div id="materialList" class="card-list active"></div>
+        <div id="partList" class="card-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="craft-panel">
+    <h2>武器作成</h2>
+    <div class="craft-header">
+      <!-- 武器選択 -->
+      <select id="weaponTypeSelect" onchange="setupSlotsForWeapon()" style="width: 100%; padding: 5px; margin-bottom: 10px;">
+        <option value="">武器種を選択</option>
+        <option value="短剣">短剣</option>
+        <option value="片手剣">片手剣</option>
+        <option value="両手剣">両手剣</option>
+        <option value="槍">槍</option>
+        <option value="斧">斧</option>
+        <option value="ハンマー">ハンマー</option>
+        <option value="弓">弓</option>
+        <option value="杖">杖</option>
+        <option value="ハンドガン">ハンドガン</option>
+        <option value="アサルトライフル">アサルトライフル</option>
+      </select>
+      <div id="craftSlotsContainer" class="craft-body" style="position: relative; height: auto; background: #2a2a2a; margin-bottom: 10px; border: 1px solid #555; border-radius: 5px; padding: 10px;"></div>
+      <div style="background:#111; padding:10px; border-radius:5px;">
+        <h3 style="margin-top: 0;">合成結果</h3>
+        <ul id="summaryList"></ul>
+        <div id="craftResult">スロットにパーツを入れてください</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    let materials = [], parts = [];
+
+    async function loadData() {
+      materials = await (await fetch("material.json")).json();
+      parts = await (await fetch("part.json")).json();
+      renderList("material", materials);
+      renderList("part", parts);
+    }
+
+    function renderList(type, list) {
+      const container = document.getElementById(type + "List");
+      container.innerHTML = "";
+      list.forEach(obj => {
+        const card = document.createElement("div");
+        card.className = "material-card";
+        card.setAttribute("draggable", "true");
+        card.setAttribute("data-name", obj["名前"]);
+        card.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", obj["名前"]);
+        highlightValidSlots(obj); //  ハイライト
+        });
+
+          card.addEventListener("dragend", () => {
+          clearSlotHighlights(); //  ハイライト解除
+        } );
+        card.innerHTML = generateCardHTML(obj);
+        container.appendChild(card);
+      });
+    }
+    // 関数の一般化（スロットの横の１、２を消す）
+        function normalizeSlotName(slotName) {
+      return slotName.replace(/[0-9]+$/, "");  // 末尾の数字を除去
+      }
+     // スロットのハイライト
+    function highlightValidSlots(item) {
+  const weaponType = document.getElementById("weaponTypeSelect").value;
+
+  document.querySelectorAll("#craftSlotsContainer .slot").forEach(slot => {
+    const expectedPart = normalizeSlotName(slot.getAttribute("data-part"));
+    const partType = item["部位"];
+    const isPart = !!partType;
+
+    if (isPart && normalizeSlotName(partType) !== expectedPart) return;
+
+    if (item["対応武器種"] && Array.isArray(item["対応武器種"])) {
+      if (!item["対応武器種"].includes(weaponType)) return;
+    }
+
+    slot.classList.add("highlight");
+  });
+}
+    // スロットのハイライト解除
+
+        function clearSlotHighlights() {
+       document.querySelectorAll("#craftSlotsContainer .slot").forEach(slot => {
+         slot.classList.remove("highlight");
+       });
+        }
+
+    // jsonからカードのHTML生成
+    function generateCardHTML(obj) {
+      return `
+        <h3>${obj["名前"]}</h3>
+        <ul>
+          ${obj["重量"] !== undefined ? `<li>重量: ${obj["重量"]}</li>` : ""}
+          ${obj["命中修正"] !== undefined ? `<li>命中修正: ${obj["命中修正"]}</li>` : ""}
+          ${obj["攻撃力"] !== undefined ? `<li>攻撃力: ${obj["攻撃力"]}</li>` : ""}
+          ${obj["回避修正"] !== undefined ? `<li>回避修正: ${obj["回避修正"]}</li>` : ""}
+          ${obj["物理防御力"] !== undefined ? `<li>物理防御力: ${obj["物理防御力"]}</li>` : ""}
+          ${obj["魔法防御力"] !== undefined ? `<li>魔法防御力: ${obj["魔法防御力"]}</li>` : ""}
+          ${obj["行動修正"] !== undefined ? `<li>行動修正: ${obj["行動修正"]}</li>` : ""}
+          ${obj["移動修正"] !== undefined ? `<li>移動修正: ${obj["移動修正"]}</li>` : ""}
+          ${obj["特性"] !== undefined ? `<li>特性: ${Array.isArray(obj["特性"]) ? obj["特性"].join(" / ") : obj["特性"]}</li>` : ""}
+          ${obj["レアリティ"] !== undefined ? `<li>レアリティ: ${obj["レアリティ"]}</li>` : ""}
+          ${obj["値段"] !== undefined ? `<li>価格: ${obj["値段"]}G</li>` : ""}
+          ${obj["素材の詳細"] ? `<li>素材の詳細: ${obj["素材の詳細"].join(", ")}</li>` : ""}
+          ${obj["対応武器種"] !== undefined ? `<li>対応武器種: ${obj["対応武器種"]}</li>` : ""}
+          ${obj["部位"] !== undefined ? `<li>部位: ${obj["部位"]}</li>` : ""}
+          </ul>`;
+    }
+    // フィルター機能の実装
+    function filterMaterials() {
+      const name = document.getElementById("nameFilter").value.toLowerCase();
+      const minW = parseFloat(document.getElementById("minWeight").value);
+      const maxW = parseFloat(document.getElementById("maxWeight").value);
+      const minAtk = parseFloat(document.getElementById("minAtk").value);
+      const minHit = parseFloat(document.getElementById("minHit").value);
+      const rarity = document.getElementById("rarityFilter").value;
+      const slot = document.getElementById("slotFilter").value.toLowerCase();
+      const weaponTypeRaw = document.getElementById("weaponTypeFilter").value;
+      const weaponType = weaponTypeRaw; // 小文字化しない
+
+      const isMaterial = document.getElementById("materialList").classList.contains("active");
+      const source = isMaterial ? materials : parts;
+
+      const filtered = source.filter(obj => {
+        return (
+          (!name || obj["名前"].toLowerCase().includes(name)) &&
+          (!rarity || obj["レアリティ"] === rarity) &&
+          (!minW || obj["重量"] >= minW) &&
+          (!maxW || obj["重量"] <= maxW) &&
+          (!minAtk || obj["攻撃力"] >= minAtk) &&
+          (!minHit || obj["命中修正"] >= minHit) &&
+          (!slot || (obj["部位"] && obj["部位"].toLowerCase().includes(slot))) &&
+          (!weaponType || (Array.isArray(obj["対応武器種"]) && obj["対応武器種"].includes(weaponType)))
+        );
+      });
+
+      renderList(isMaterial ? "material" : "part", filtered);
+    }
+
+    // タブ切り替え
+    function switchTab(tab) {
+      const materialTab = document.getElementById("materialList");
+      const partTab = document.getElementById("partList");
+      const buttons = document.querySelectorAll(".tab-bar button");
+      buttons.forEach(btn => btn.classList.remove("active"));
+
+      if (tab === "material") {
+        materialTab.classList.add("active");
+        partTab.classList.remove("active");
+        buttons[0].classList.add("active");
+      } else {
+        partTab.classList.add("active");
+        materialTab.classList.remove("active");
+        buttons[1].classList.add("active");
+      }
+    }
+
+    loadData();
+    
+    //各種の要求素材の定義
+    const weaponSlotMap = {
+  "短剣": ["刀身", "柄", "装飾"],
+  "片手剣": ["刀身", "柄", "装飾"],
+  "両手剣": ["刀身1", "刀身2", "柄", "装飾"],
+  "槍": ["穂先", "柄1", "柄2", "装飾"],
+  "斧": ["刃", "柄", "装飾"],
+  "ハンマー": ["頭部1", "頭部2", "柄", "装飾"],
+  "弓": ["弓身1", "弓身2", "弦", "装飾"],
+  "杖": ["杖身", "宝珠", "装飾"],
+  "ハンドガン": ["銃身", "引き金", "銃床", "装飾","カスタム"],
+  "アサルトライフル": ["銃身1", "銃身2", "引き金", "銃床", "装飾","カスタム"]
+};
+
+let selectedParts = {};  // スロット名: データ
+const craftContainer = document.getElementById("craftSlotsContainer");
+
+function setupSlotsForWeapon() {
+  const weaponType = document.getElementById("weaponTypeSelect").value;
+  craftContainer.innerHTML = "";  // リセット
+  selectedParts = {};
+
+  if (!weaponSlotMap[weaponType]) return;
+
+  weaponSlotMap[weaponType].forEach(slotName => {
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    slot.setAttribute("data-part", slotName);
+    slot.innerText = slotName;
+    slot.addEventListener("dragover", e => e.preventDefault());
+
+    // ドロップ処理
+   slot.addEventListener("drop", e => {
+  e.preventDefault();
+  const name = e.dataTransfer.getData("text/plain");
+  const source = [...materials, ...parts];
+  const dropped = source.find(obj => obj["名前"] === name);
+  if (!dropped) return;
+
+  const expectedPart = slot.getAttribute("data-part");
+  const baseExpected = normalizeSlotName(expectedPart);
+
+  if (dropped["部位"] && normalizeSlotName(dropped["部位"]) !== baseExpected) {
+    alert(`${dropped["名前"]} は「${expectedPart}」の部位に使用できません。`);
+    return;
+  }
+
+  //alertが動きません！どうにかします。
+  const selectedWeapon = document.getElementById("weaponTypeSelect").value;
+  if (dropped["対応武器種"] && Array.isArray(dropped["対応武器種"])) {
+    if (!dropped["対応武器種"].includes(selectedWeapon)) {
+      alert(`${dropped["名前"]} は「${selectedWeapon}」には対応していません。`);
+      return;
+    }
+  }
+
+  //partとmaterialの違いを認識、partsならそのまま加算、materialなら仮想パーツを生成
+  if (dropped["部位"]) {
+    selectedParts[expectedPart] = dropped;
+    slot.innerText = dropped["名前"];
+    slot.classList.add("filled");
+  } else {
+    const partData = simulatePartFromMaterial(dropped, baseExpected);
+    selectedParts[expectedPart] = partData;
+    slot.innerText = dropped["名前"] + " ×" + (materialNeededPerPart[baseExpected] || 1);
+    slot.classList.add("filled");
+  }
+
+  updateCraftResult();
+});
+
+    // 右クリックでリセット（動かない、スマホ対応させるために変更します。)
+    slot.addEventListener("contextmenu", e => {
+      e.preventDefault();
+      delete selectedParts[slotName];
+      slot.innerText = slotName;
+      slot.style.background = "";
+      updateCraftResult();
+    });
+
+    craftContainer.appendChild(slot);
+  });
+
+  updateCraftResult();
+}
+
+// 必要数定義（1パーツあたりに必要な素材量）
+const materialNeededPerPart = {
+  "刀身": 2,
+  "柄": 1,
+  "装飾": 1,
+  "穂先": 2,
+  "刃": 2,
+  "頭部": 2,
+  "弓身": 2,
+  "弦": 1,
+  "杖身": 2,
+  "宝珠": 1,
+  "銃身": 2,
+  "引き金": 1,
+  "銃床": 1
+};
+
+// 素材から仮想パーツ作成
+function simulatePartFromMaterial(material, slotName) {
+  const baseName = normalizeSlotName(slotName);
+  const multiplier = materialNeededPerPart[baseName] || 1;
+  const newObj = { "名前": material["名前"] + "×" + multiplier };
+
+  for (let key in material) {
+    if (typeof material[key] === "number") {
+      newObj[key] = material[key] * multiplier;
+    } else if (key === "特性") {
+      if (Array.isArray(material["特性"])) {
+        newObj["特性"] = [...material["特性"]];
+      } else {
+        newObj["特性"] = [material["特性"]];
+      }
+    }
+  }
+
+  return newObj;
+}
+
+
+function updateCraftResult() {
+  const summary = {
+    攻撃力: 0,
+    命中修正: 0,
+    物理防御力: 0,
+    魔法防御力: 0,
+    行動修正: 0,
+    移動修正: 0,
+    重量: 0,
+    値段: 0,
+    特性: new Set() // ← 重複排除用
+  };
+
+  for (const key in selectedParts) {
+    const part = selectedParts[key];
+    if (!part) continue;
+
+    for (const stat in summary) {
+      if (stat === "特性") {
+        const traits = part["特性"];
+        if (traits) {
+          if (Array.isArray(traits)) {
+            traits.forEach(t => summary.特性.add(t));
+          } else {
+            summary.特性.add(traits); // 文字列1個でも
+          }
+        }
+      } else if (part[stat] !== undefined) {
+        summary[stat] += part[stat];
+      }
+    }
+  }
+
+  const list = document.getElementById("summaryList");
+  list.innerHTML = "";
+
+  for (const stat in summary) {
+    if (stat === "特性") {
+      if (summary.特性.size > 0) {
+        const li = document.createElement("li");
+        li.textContent = `特性: ${[...summary.特性].join(" / ")}`;
+        list.appendChild(li);
+      }
+    } else if (summary[stat] !== 0) {
+      const li = document.createElement("li");
+      li.textContent = `${stat}: ${summary[stat]}`;
+      list.appendChild(li);
+    }
+  }
+}
+
+
+  </script>
+</body>
+</html>
